@@ -82,6 +82,10 @@ enum {
 	IFACE_ATTR_NDPROXY_ROUTING,
 	IFACE_ATTR_NDPROXY_SLAVE,
 	IFACE_ATTR_PREFIX_FILTER,
+	IFACE_ATTR_RA_USE_VALID_LFT,
+	IFACE_ATTR_RA_VALID_LFT,
+	IFACE_ATTR_RA_USE_PREFERRED_LFT,
+	IFACE_ATTR_RA_PREFERRED_LFT,
 	IFACE_ATTR_MAX
 };
 
@@ -130,6 +134,10 @@ static const struct blobmsg_policy iface_attrs[IFACE_ATTR_MAX] = {
 	[IFACE_ATTR_NDPROXY_ROUTING] = { .name = "ndproxy_routing", .type = BLOBMSG_TYPE_BOOL },
 	[IFACE_ATTR_NDPROXY_SLAVE] = { .name = "ndproxy_slave", .type = BLOBMSG_TYPE_BOOL },
 	[IFACE_ATTR_PREFIX_FILTER] = { .name = "prefix_filter", .type = BLOBMSG_TYPE_STRING },
+	[IFACE_ATTR_RA_USE_VALID_LFT] = { .name = "ra_use_valid_lft", .type = BLOBMSG_TYPE_BOOL },
+	[IFACE_ATTR_RA_VALID_LFT] = { .name = "ra_valid_lft", .type = BLOBMSG_TYPE_STRING },
+	[IFACE_ATTR_RA_USE_PREFERRED_LFT] = { .name = "ra_use_preferred_lft", .type = BLOBMSG_TYPE_BOOL },
+	[IFACE_ATTR_RA_PREFERRED_LFT] = { .name = "ra_preferred_lft", .type = BLOBMSG_TYPE_STRING },
 };
 
 static const struct uci_blob_param_info iface_attr_info[IFACE_ATTR_MAX] = {
@@ -525,6 +533,22 @@ int config_parse_interface(void *data, size_t len, const char *name, bool overwr
 		iface->dhcp_leasetime = time;
 	}
 
+	if ((c = tb[IFACE_ATTR_RA_PREFERRED_LFT])) {
+		double time = parse_leasetime(c);
+		if (time < 0)
+			goto err;
+
+		iface->ra_preferred_lft = time;
+	}
+
+	if ((c = tb[IFACE_ATTR_RA_USE_VALID_LFT])) {
+		double time = parse_leasetime(c);
+		if (time < 0)
+			goto err;
+
+		iface->ra_valid_lft = time;
+	}
+
 	if ((c = tb[IFACE_ATTR_START])) {
 		iface->dhcpv4_start.s_addr = htonl(blobmsg_get_u32(c));
 		iface->dhcpv4_end.s_addr = htonl(ntohl(iface->dhcpv4_start.s_addr) +
@@ -794,6 +818,12 @@ int config_parse_interface(void *data, size_t len, const char *name, bool overwr
 
 	if ((c = tb[IFACE_ATTR_RA_USELEASETIME]))
 		iface->ra_useleasetime = blobmsg_get_bool(c);
+
+	if ((c = tb[IFACE_ATTR_RA_USE_PREFERRED_LFT]))
+		iface->ra_use_preferred_lft = blobmsg_get_bool(c);
+
+	if ((c = tb[IFACE_ATTR_RA_USE_VALID_LFT]))
+		iface->ra_use_valid_lft = blobmsg_get_bool(c);
 
 	if ((c = tb[IFACE_ATTR_RA_DNS]))
 		iface->ra_dns = blobmsg_get_bool(c);

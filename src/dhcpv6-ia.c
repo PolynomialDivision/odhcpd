@@ -827,15 +827,22 @@ static size_t build_ia(uint8_t *buf, size_t buflen, uint16_t status,
 	}
 
 	if (a) {
-		uint32_t leasetime;
+		uint32_t leasetime, pref, valid;
 
 		if (a->leasetime)
 			leasetime = a->leasetime;
 		else
 			leasetime = iface->dhcp_leasetime;
 
-		uint32_t pref = leasetime;
-		uint32_t valid = leasetime;
+		if (iface->ra_use_preferred_lft)
+			pref = iface->ra_preferred_lft;
+		else
+			pref = leasetime;
+
+		if (iface->ra_use_valid_lft)
+			valid = iface->ra_valid_lft;
+		else
+			valid = leasetime;
 
 		struct odhcpd_ipaddr *addrs = (a->managed) ? a->managed : iface->addr6;
 		size_t addrlen = (a->managed) ? (size_t)a->managed_size : iface->addr6_len;
@@ -851,14 +858,14 @@ static size_t build_ia(uint8_t *buf, size_t buflen, uint16_t status,
 			if (prefix_pref != UINT32_MAX)
 				prefix_pref -= now;
 
-			if (prefix_pref > leasetime)
-				prefix_pref = leasetime;
+			if (prefix_pref > pref)
+				prefix_pref = pref;
 
 			if (prefix_valid != UINT32_MAX)
 				prefix_valid -= now;
 
-			if (prefix_valid > leasetime)
-				prefix_valid = leasetime;
+			if (prefix_valid > valid)
+				prefix_valid = valid;
 
 			if (a->flags & OAF_DHCPV6_PD) {
 				struct dhcpv6_ia_prefix o_ia_p = {
