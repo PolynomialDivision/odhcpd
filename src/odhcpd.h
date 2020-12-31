@@ -286,6 +286,10 @@ struct interface {
 	uint32_t ra_retranstime;
 	uint32_t ra_hoplimit;
 	int ra_mtu;
+	bool ra_use_valid_lft;
+	bool ra_use_preferred_lft;
+	uint32_t ra_valid_lft;
+	uint32_t ra_preferred_lft;
 
 	// DHCP
 	uint32_t dhcp_leasetime;

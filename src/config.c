@@ -82,6 +82,10 @@ enum {
 	IFACE_ATTR_NDPROXY_ROUTING,
 	IFACE_ATTR_NDPROXY_SLAVE,
 	IFACE_ATTR_PREFIX_FILTER,
+	IFACE_ATTR_RA_USE_VALID_LFT,
+	IFACE_ATTR_RA_VALID_LFT,
+	IFACE_ATTR_RA_USE_PREFERRED_LFT,
+	IFACE_ATTR_RA_PREFERRED_LFT,
 	IFACE_ATTR_MAX
 };
 
@@ -130,6 +134,10 @@ static const struct blobmsg_policy iface_attrs[IFACE_ATTR_MAX] = {
 	[IFACE_ATTR_NDPROXY_ROUTING] = { .name = "ndproxy_routing", .type = BLOBMSG_TYPE_BOOL },
 	[IFACE_ATTR_NDPROXY_SLAVE] = { .name = "ndproxy_slave", .type = BLOBMSG_TYPE_BOOL },
 	[IFACE_ATTR_PREFIX_FILTER] = { .name = "prefix_filter", .type = BLOBMSG_TYPE_STRING },
+	[IFACE_ATTR_RA_USE_VALID_LFT] = { .name = "ra_use_valid_lft", .type = BLOBMSG_TYPE_BOOL },
+	[IFACE_ATTR_RA_VALID_LFT] = { .name = "ra_valid_lft", .type = BLOBMSG_TYPE_INT32 },
+	[IFACE_ATTR_RA_USE_PREFERRED_LFT] = { .name = "ra_use_preferred_lft", .type = BLOBMSG_TYPE_BOOL },
+	[IFACE_ATTR_RA_PREFERRED_LFT] = { .name = "ra_preferred_lft", .type = BLOBMSG_TYPE_INT32 },
 };
 
 static const struct uci_blob_param_info iface_attr_info[IFACE_ATTR_MAX] = {
@@ -209,6 +217,10 @@ static void set_interface_defaults(struct interface *iface)
 	iface->ra_mininterval = iface->ra_maxinterval/3;
 	iface->ra_lifetime = -1;
 	iface->ra_dns = true;
+
+	// not sure if this is necessary
+	iface->ra_use_valid_lft = false;
+	iface->ra_use_preferred_lft = false;
 }
 
 static void clean_interface(struct interface *iface)
@@ -794,6 +806,18 @@ int config_parse_interface(void *data, size_t len, const char *name, bool overwr
 
 	if ((c = tb[IFACE_ATTR_RA_USELEASETIME]))
 		iface->ra_useleasetime = blobmsg_get_bool(c);
+
+	if ((c = tb[IFACE_ATTR_RA_USE_PREFERRED_LFT]))
+		iface->ra_use_preferred_lft = blobmsg_get_bool(c);
+
+	if ((c = tb[IFACE_ATTR_RA_PREFERRED_LFT]))
+		iface->ra_preferred_lft = blobmsg_get_u32(c);
+
+	if ((c = tb[IFACE_ATTR_RA_USE_VALID_LFT]))
+		iface->ra_use_valid_lft = blobmsg_get_bool(c);
+
+	if ((c = tb[IFACE_ATTR_RA_VALID_LFT]))
+		iface->ra_valid_lft = blobmsg_get_u32(c);
 
 	if ((c = tb[IFACE_ATTR_RA_DNS]))
 		iface->ra_dns = blobmsg_get_bool(c);

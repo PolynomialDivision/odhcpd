@@ -554,11 +554,18 @@ static int send_router_advert(struct interface *iface, const struct in6_addr *fr
 			if (iface->ra_useleasetime &&
 			    preferred > iface->dhcp_leasetime)
 				preferred = iface->dhcp_leasetime;
+
+			if (iface->ra_use_preferred_lft &&
+			    preferred > iface->ra_preferred_lft)
+				preferred = iface->ra_preferred_lft;
 		}
 
 		valid = TIME_LEFT(addr->valid, now);
 		if (iface->ra_useleasetime && valid > iface->dhcp_leasetime)
 			valid = iface->dhcp_leasetime;
+
+		if (iface->ra_use_valid_lft && valid > iface->ra_valid_lft)
+			valid = iface->ra_valid_lft;
 
 		if (minvalid > valid)
 			minvalid = valid;
