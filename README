@@ -129,6 +129,10 @@ ra_lifetime		integer	1800			Value to be placed in Router
 ra_useleasetime		bool	0			Use configured leasetime as
 							limit for the preferred and
 							valid lifetime of a prefix
+ra_preferred_lft	string	12h		Value for the preferred lifetime
+							for a prefix
+ra_use_preferred_lft	bool	0		Use the limit for preferred
+							lifetime of a prefix
 ra_reachabletime	integer	0			Reachable Time in milliseconds to be
 							advertised in RA messages
 ra_retranstime		integer	0			Retransmit Time in milliseconds to be
