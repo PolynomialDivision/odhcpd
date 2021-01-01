@@ -118,6 +118,8 @@ static int handle_dhcpv6_leases(_unused struct ubus_context *ctx, _unused struct
 	time_t now = odhcpd_time();
 	void *a;
 
+	syslog(LOG_ERR, "HUHUHU");
+
 	blob_buf_init(&b, 0);
 	a = blobmsg_open_table(&b, "device");
 

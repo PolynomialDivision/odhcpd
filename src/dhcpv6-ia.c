@@ -233,7 +233,11 @@ void dhcpv6_ia_enum_addrs(struct interface *iface, struct dhcp_assignment *c,
 
 		addr = addrs[i].addr.in6;
 		pref = addrs[i].preferred;
+		
+		syslog(LOG_ERR, "[dhcpv6_ia_enum_addrs] : pref 1: %d", pref);
+
 		valid = addrs[i].valid;
+		syslog(LOG_ERR, "[dhcpv6_ia_enum_addrs] : valid 1: %d", valid);
 		if (c->flags & OAF_DHCPV6_NA) {
 			if (!ADDR_ENTRY_VALID_IA_ADDR(iface, i, m, addrs))
 				continue;
@@ -247,17 +251,26 @@ void dhcpv6_ia_enum_addrs(struct interface *iface, struct dhcp_assignment *c,
 			addr.s6_addr32[2] = addr.s6_addr32[3] = 0;
 		}
 
-		if (pref > (uint32_t)c->valid_until)
-			pref = c->valid_until;
+		if (pref > (uint32_t)c->preferred_until)
+			pref = c->preferred_until;
+		syslog(LOG_ERR, "[dhcpv6_ia_enum_addrs] : valid_until: %ld", c->valid_until);
+
+		syslog(LOG_ERR, "[dhcpv6_ia_enum_addrs] : pref 2: %d", pref);
 
 		if (pref != UINT32_MAX)
 			pref -= now;
 
+		syslog(LOG_ERR, "[dhcpv6_ia_enum_addrs] : pref 3: %d", pref);
+
 		if (valid > (uint32_t)c->valid_until)
 			valid = c->valid_until;
 
+		syslog(LOG_ERR, "[dhcpv6_ia_enum_addrs] : valid 2: %d", valid);
+
 		if (valid != UINT32_MAX)
 			valid -= now;
+
+		syslog(LOG_ERR, "[dhcpv6_ia_enum_addrs] : valid 3: %d", valid);
 
 		func(&addr, prefix, pref, valid, arg);
 	}
@@ -867,6 +880,8 @@ static size_t build_ia(uint8_t *buf, size_t buflen, uint16_t status,
 			if (prefix_valid > valid)
 				prefix_valid = valid;
 
+			syslog(LOG_ERR, "[build_ia] : pref 1: %d, pref_prefix: %d", pref, prefix_pref);
+
 			if (a->flags & OAF_DHCPV6_PD) {
 				struct dhcpv6_ia_prefix o_ia_p = {
 					.type = htons(DHCPV6_OPT_IA_PREFIX),
@@ -889,6 +904,8 @@ static size_t build_ia(uint8_t *buf, size_t buflen, uint16_t status,
 				memcpy(buf + ia_len, &o_ia_p, sizeof(o_ia_p));
 				ia_len += sizeof(o_ia_p);
 			}
+
+			syslog(LOG_ERR, "[build_ia] : pref 2: %d, pref_prefix: %d", pref, prefix_pref);
 
 			if (a->flags & OAF_DHCPV6_NA) {
 				struct dhcpv6_ia_addr o_ia_a = {
@@ -919,12 +936,17 @@ static size_t build_ia(uint8_t *buf, size_t buflen, uint16_t status,
 				if (prefix_valid < valid)
 					valid = prefix_valid;
 			}
+			syslog(LOG_ERR, "[build_ia] : pref 3: %d, pref_prefix: %d", pref, prefix_pref);
 		}
 
 		if (!INFINITE_VALID(a->valid_until))
 			/* UINT32_MAX is considered as infinite leasetime */
 			a->valid_until = (valid == UINT32_MAX) ? 0 : valid + now;
-
+		
+		//if (!INFINITE_VALID(a->preferred_until))
+			/* UINT32_MAX is considered as infinite leasetime */
+		a->preferred_until = (pref == UINT32_MAX) ? 0 : pref + now;
+		
 		o_ia.t1 = htonl((pref == UINT32_MAX) ? pref : pref * 5 / 10);
 		o_ia.t2 = htonl((pref == UINT32_MAX) ? pref : pref * 8 / 10);
 
@@ -976,6 +998,9 @@ static size_t build_ia(uint8_t *buf, size_t buflen, uint16_t status,
 
 			if (!found) {
 				if (otype == DHCPV6_OPT_IA_PREFIX) {
+
+					syslog(LOG_ERR, "[build_ia] : pref 4");
+
 					struct dhcpv6_ia_prefix o_ia_p = {
 						.type = htons(DHCPV6_OPT_IA_PREFIX),
 						.len = htons(sizeof(o_ia_p) - 4),
@@ -991,6 +1016,9 @@ static size_t build_ia(uint8_t *buf, size_t buflen, uint16_t status,
 					memcpy(buf + ia_len, &o_ia_p, sizeof(o_ia_p));
 					ia_len += sizeof(o_ia_p);
 				} else {
+
+					syslog(LOG_ERR, "[build_ia] : pref 5");
+
 					struct dhcpv6_ia_addr o_ia_a = {
 						.type = htons(DHCPV6_OPT_IA_ADDR),
 						.len = htons(sizeof(o_ia_a) - 4),
