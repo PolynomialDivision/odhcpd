@@ -231,9 +231,21 @@ void dhcpv6_ia_enum_addrs(struct interface *iface, struct dhcp_assignment *c,
 		if (!valid_addr(&addrs[i], now))
 			continue;
 
+		/* Filter Out Prefixes */
+		if (odhcpd_bmemcmp(&addrs[i].addr, &iface->pio_filter_addr,
+			iface->pio_filter_length) != 0 ||
+			addrs[i].prefix < iface->pio_filter_length) {
+			char addrbuf[INET6_ADDRSTRLEN];
+			syslog(LOG_INFO, "Address %s filtered out on %s",
+				inet_ntop(AF_INET6, &addrs[i].addr.in6, addrbuf, sizeof(addrbuf)),
+				iface->name);
+			continue;
+		}
+
 		addr = addrs[i].addr.in6;
 		pref = addrs[i].preferred;
 		valid = addrs[i].valid;
+
 		if (c->flags & OAF_DHCPV6_NA) {
 			if (!ADDR_ENTRY_VALID_IA_ADDR(iface, i, m, addrs))
 				continue;
@@ -847,6 +859,18 @@ static size_t build_ia(uint8_t *buf, size_t buflen, uint16_t status,
 		size_t m = get_preferred_addr(addrs, addrlen);
 
 		for (size_t i = 0; i < addrlen; ++i) {
+
+			/* Filter Out Prefixes */
+			if (odhcpd_bmemcmp(&addrs[i].addr, &iface->pio_filter_addr,
+				iface->pio_filter_length) != 0 ||
+				addrs[i].prefix < iface->pio_filter_length) {
+				char addrbuf[INET6_ADDRSTRLEN];
+				syslog(LOG_INFO, "Address %s filtered out on %s",
+					inet_ntop(AF_INET6, &addrs[i].addr.in6, addrbuf, sizeof(addrbuf)),
+					iface->name);
+				continue;
+			}
+
 			uint32_t prefix_pref = addrs[i].preferred;
 			uint32_t prefix_valid = addrs[i].valid;
 
