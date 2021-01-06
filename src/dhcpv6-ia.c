@@ -17,6 +17,7 @@
 #include "dhcpv6.h"
 #include "dhcpv4.h"
 
+#include <stdint.h>
 #include <time.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -919,13 +920,29 @@ static size_t build_ia(uint8_t *buf, size_t buflen, uint16_t status,
 			}
 		}
 
-		if (!INFINITE_VALID(a->valid_until))
-			/* UINT32_MAX is considered as infinite leasetime */
-			a->valid_until = (valid == UINT32_MAX) ? 0 : valid + now;
+		
+		if (!INFINITE_VALID(a->valid_until)) {
+			uint32_t tmp_valid;
+			if (iface->absolute_lifetime)
+				//TODO
+				tmp_valid = valid; // ToDO: check that
+			else
+				tmp_valid = valid + now;
 
-		if (!INFINITE_VALID(a->preferred_until))
 			/* UINT32_MAX is considered as infinite leasetime */
-			a->preferred_until = (pref == UINT32_MAX) ? 0 : pref + now;
+			a->valid_until = (valid == UINT32_MAX) ? 0 : tmp_valid;
+		}
+		if (!INFINITE_VALID(a->preferred_until)) {
+			uint32_t tmp_pref;
+			if (iface->absolute_lifetime)
+				//TODO
+				tmp_pref = pref; // ToDO: check that
+			else
+				tmp_pref = pref + now;
+
+			/* UINT32_MAX is considered as infinite leasetime */
+			a->preferred_until = (pref == UINT32_MAX) ? 0 : tmp_pref;
+		}
 
 		o_ia.t1 = htonl((pref == UINT32_MAX) ? pref : pref * 5 / 10);
 		o_ia.t2 = htonl((pref == UINT32_MAX) ? pref : pref * 8 / 10);

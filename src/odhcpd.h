@@ -288,6 +288,7 @@ struct interface {
 	uint32_t ra_hoplimit;
 	int ra_mtu;
 	uint32_t preferred_lifetime;
+	bool absolute_lifetime;
 
 	// DHCP
 	uint32_t dhcp_leasetime;
