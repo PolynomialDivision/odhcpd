@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <syslog.h>
+#include <time.h>
 
 #include <uci.h>
 #include <uci_blob.h>
@@ -83,6 +84,7 @@ enum {
 	IFACE_ATTR_NDPROXY_SLAVE,
 	IFACE_ATTR_PREFIX_FILTER,
 	IFACE_ATTR_PREFERRED_LIFETIME,
+	IFACE_ATTR_ABSOLUTE_LIFETIME,
 	IFACE_ATTR_MAX
 };
 
@@ -132,6 +134,7 @@ static const struct blobmsg_policy iface_attrs[IFACE_ATTR_MAX] = {
 	[IFACE_ATTR_NDPROXY_SLAVE] = { .name = "ndproxy_slave", .type = BLOBMSG_TYPE_BOOL },
 	[IFACE_ATTR_PREFIX_FILTER] = { .name = "prefix_filter", .type = BLOBMSG_TYPE_STRING },
 	[IFACE_ATTR_PREFERRED_LIFETIME] = { .name = "preferred_lifetime", .type = BLOBMSG_TYPE_STRING },
+	[IFACE_ATTR_ABSOLUTE_LIFETIME] = { .name = "absolute_lifetime", .type = BLOBMSG_TYPE_BOOL },
 };
 
 static const struct uci_blob_param_info iface_attr_info[IFACE_ATTR_MAX] = {
@@ -212,6 +215,7 @@ static void set_interface_defaults(struct interface *iface)
 	iface->ra_mininterval = iface->ra_maxinterval/3;
 	iface->ra_lifetime = -1;
 	iface->ra_dns = true;
+	iface->absolute_lifetime = false;
 }
 
 static void clean_interface(struct interface *iface)
@@ -321,29 +325,48 @@ static void set_config(struct uci_section *s)
 	}
 }
 
-static double parse_leasetime(struct blob_attr *c) {
+static double parse_leasetime(struct blob_attr *c, bool absolute) {
 	char *val = blobmsg_get_string(c), *endptr = NULL;
-	double time = strcmp(val, "infinite") ? strtod(val, &endptr) : UINT32_MAX;
+	double ret_time = strcmp(val, "infinite") ? strtod(val, &endptr) : UINT32_MAX;
 
-	if (time && endptr && endptr[0]) {
-		if (endptr[0] == 's')
-			time *= 1;
-		else if (endptr[0] == 'm')
-			time *= 60;
-		else if (endptr[0] == 'h')
-			time *= 3600;
-		else if (endptr[0] == 'd')
-			time *= 24 * 3600;
-		else if (endptr[0] == 'w')
-			time *= 7 * 24 * 3600;
-		else
+	if (absolute)
+	{
+		// "10 Jan 2020 00:00:00"
+		// Parse absolut time
+		struct tm tm = {0};
+		char *s = strptime(val, "%d %b %Y %H:%M:%S", &tm);
+		if (s == NULL) {
+			syslog(LOG_ERR, "Failed to Parse Date: %s", val);
 			goto err;
+		}
+
+		time_t now = odhcpd_time();
+		time_t wall_time = time(NULL);
+		time_t t = mktime(&tm);
+
+		double diff = difftime(t,wall_time);
+		ret_time += now + diff;
+	} else {
+		if (ret_time && endptr && endptr[0]) {
+			if (endptr[0] == 's')
+				ret_time *= 1;
+			else if (endptr[0] == 'm')
+				ret_time *= 60;
+			else if (endptr[0] == 'h')
+				ret_time *= 3600;
+			else if (endptr[0] == 'd')
+				ret_time *= 24 * 3600;
+			else if (endptr[0] == 'w')
+				ret_time *= 7 * 24 * 3600;
+			else
+				goto err;
+		}
 	}
 
-	if (time < 60)
-		time = 60;
+	if (ret_time < 60)
+		ret_time = 60;
 
-	return time;
+	return ret_time;
 
 err:
 	return -1;
@@ -409,7 +432,7 @@ int set_lease_from_blobmsg(struct blob_attr *ba)
 	}
 
 	if ((c = tb[LEASE_ATTR_LEASETIME])) {
-		double time = parse_leasetime(c);
+		double time = parse_leasetime(c, false); // do not support absolute timestamps for now
 		if (time < 0)
 			goto err;
 
@@ -520,8 +543,12 @@ int config_parse_interface(void *data, size_t len, const char *name, bool overwr
 	if ((c = tb[IFACE_ATTR_DYNAMICDHCP]))
 		iface->no_dynamic_dhcp = !blobmsg_get_bool(c);
 
+
+	if ((c = tb[IFACE_ATTR_ABSOLUTE_LIFETIME]))
+		iface->absolute_lifetime = blobmsg_get_bool(c);
+
 	if ((c = tb[IFACE_ATTR_LEASETIME])) {
-		double time = parse_leasetime(c);
+		double time = parse_leasetime(c, iface->absolute_lifetime);
 		if (time < 0)
 			goto err;
 
@@ -529,7 +556,7 @@ int config_parse_interface(void *data, size_t len, const char *name, bool overwr
 	}
 
 	if ((c = tb[IFACE_ATTR_PREFERRED_LIFETIME])) {
-		double time = parse_leasetime(c);
+		double time = parse_leasetime(c, iface->absolute_lifetime);
 		if (time < 0)
 			goto err;
 

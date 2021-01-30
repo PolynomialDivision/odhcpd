@@ -107,11 +107,13 @@ dns_service		bool	1			Announce the address of interface as DNS service
 							if the list of dns is empty
 domain			list	<local search domain>	Search domains to announce
 
-leasetime		string	12h			DHCPv4 address leasetime
+leasetime		string	12h			DHCPv4 address leasetime. If absolute_lifetime is
+							set the value can be given as a date, e.g. "10 Jan 2020 00:00:00".
 start			integer	100			DHCPv4 pool start
 limit			integer	150			DHCPv4 pool size
 preferred_lifetime	string	12h			Value for the preferred lifetime
-							for a prefix
+							for a prefix. If absolute_lifetime is set the value can
+							be given as a date, e.g. "10 Jan 2020 00:00:00".
 ra_default		integer	0			Override default route
 			0: default, 1: ignore no public address, 2: ignore all
 ra_flags		list	other-config		List of RA flags to be
@@ -145,6 +147,8 @@ ndproxy_slave		bool	0			NDProxy external slave
 prefix_filter		string	::/0			Only advertise on-link prefixes within
 			[IPv6 prefix]			the provided IPv6 prefix; others are
 							filtered out.
+absolute_lifetime		bool	0			Interpret configured lifetime as
+							absolute timestamps. The format has to be "10 Jan 2020 00:00:00".
 
 
 Sections of type host (static leases)

@@ -865,6 +865,16 @@ static size_t build_ia(uint8_t *buf, size_t buflen, uint16_t status,
 			if (prefix_valid > leasetime)
 				prefix_valid = leasetime;
 
+			if (iface->absolute_lifetime) {
+				if ((long int) iface->dhcp_leasetime > now) {
+					prefix_valid = iface->dhcp_leasetime - now;
+					prefix_pref = iface->preferred_lifetime - now;
+				} else { // if we have a timestamp in the past set pref and valid to 60s
+					prefix_valid = 60;
+					prefix_pref = 60;
+				}
+			}
+
 			if (a->flags & OAF_DHCPV6_PD) {
 				struct dhcpv6_ia_prefix o_ia_p = {
 					.type = htons(DHCPV6_OPT_IA_PREFIX),
