@@ -160,6 +160,17 @@ const struct uci_blob_param_list lease_attr_list = {
 	.params = lease_attrs,
 };
 
+const struct blobmsg_policy prefix_attrs[PREFIX_ATTR_MAX] = {
+	[PREFIX_ATTR_PREFIX] = { .name = "prefix", .type = BLOBMSG_TYPE_STRING },
+	[PREFIX_ATTR_VALID_LIFETIME] = { .name = "valid_lifetime", .type = BLOBMSG_TYPE_INT32 },
+	[PREFIX_ATTR_PREFERRED_LIFETIME] = { .name = "preferred_lifetime", .type = BLOBMSG_TYPE_INT32 },
+};
+
+const struct uci_blob_param_list prefix_attr_list = {
+	.n_params = PREFIX_ATTR_MAX,
+	.params = prefix_attrs,
+};
+
 enum {
 	ODHCPD_ATTR_LEGACY,
 	ODHCPD_ATTR_MAINDHCP,
@@ -426,6 +437,16 @@ err:
 
 	return -1;
 }
+
+int set_prefix_from_blobmsg(struct blob_attr *ba)
+{
+	struct blob_attr *tb[PREFIX_ATTR_MAX];
+
+	blobmsg_parse(prefix_attrs, PREFIX_ATTR_MAX, tb, blob_data(ba), blob_len(ba));
+
+	return 0;
+}
+
 
 static int set_lease_from_uci(struct uci_section *s)
 {

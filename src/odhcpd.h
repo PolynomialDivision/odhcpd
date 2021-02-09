@@ -174,6 +174,25 @@ enum {
 	LEASE_ATTR_MAX
 };
 
+struct prefix_config {
+	struct list_head head;
+	struct list_head prefix_list;
+
+	uint32_t valid_lifetime;
+	uint32_t preferred_lifetime;
+
+	/*
+		ToDo!
+	*/
+};
+
+enum {
+	PREFIX_ATTR_PREFIX,
+	PREFIX_ATTR_VALID_LIFETIME,
+	PREFIX_ATTR_PREFERRED_LIFETIME,
+	PREFIX_ATTR_MAX
+};
+
 struct odhcpd_ref_ip;
 
 struct dhcp_assignment {
@@ -332,6 +351,7 @@ struct interface {
 
 extern struct avl_tree interfaces;
 extern const struct blobmsg_policy lease_attrs[LEASE_ATTR_MAX];
+extern const struct blobmsg_policy prefix_attrs[PREFIX_ATTR_MAX];
 
 inline static void free_assignment(struct dhcp_assignment *a)
 {
@@ -393,6 +413,7 @@ struct lease *config_find_lease_by_mac(const uint8_t *mac);
 struct lease *config_find_lease_by_hostid(const uint32_t hostid);
 struct lease *config_find_lease_by_ipaddr(const uint32_t ipaddr);
 int set_lease_from_blobmsg(struct blob_attr *ba);
+int set_prefix_from_blobmsg(struct blob_attr *ba);
 
 #ifdef WITH_UBUS
 int ubus_init(void);
